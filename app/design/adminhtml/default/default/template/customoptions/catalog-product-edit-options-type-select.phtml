@@ -1,0 +1,282 @@
+<script type="text/javascript">
+    //<![CDATA[
+    OptionTemplateSelect = '<table class="border" cellpadding="0" cellspacing="0" style="width:900px;">'+
+        '<input type="hidden" class="required-option-select-type-rows" name="validation_{{option_id}}_result" value="" >'+
+        '<thead>'+
+        '<tr class="headings">'+
+        '<th class="type-title"><?php echo Mage::helper('catalog')->__('Title') ?> <span class="required">*</span></th>'+
+        '<th class="type-price"><?php echo Mage::helper('catalog')->__('Price') ?></th>'+
+        '<th class="type-type"><?php echo Mage::helper('catalog')->__('Price Type') ?></th>'+
+        '<th class="type-sku"><?php echo Mage::helper('catalog')->__('SKU') ?></th>'+
+        '<th class="type-order"><?php echo Mage::helper('catalog')->__('Sort Order') ?></th>'+
+        <?php if (Mage::helper('customoptions')->isInventoryEnabled()): ?>
+        '<th class="type-order"><?php echo Mage::helper('catalog')->__('Qty') ?></th>'+
+        <?php endif; ?>
+        '<th class="type-order">Default</th>'+
+        '<th class="type-image"><?php echo Mage::helper('catalog')->__('Image') ?></th>'+
+        '<th class="type-butt last">&nbsp;</th>'+
+        '</tr>'+
+        '</thead>'+
+        '<tbody id="select_option_type_row_{{option_id}}">'+
+        '</tbody>'+
+        '<tfoot>'+
+        '<tr>'+
+        '<td colspan="100" class="a-right"><?php echo $this->getAddButtonHtml() ?></td>'+
+        '</tr>'+
+        '</tfoot>'+
+        '</table>';
+
+    OptionTemplateSelectRow = '<tr id="product_option_{{id}}_select_{{select_id}}">'+
+        '<td>'+
+        '<input type="hidden" name="product[options][{{id}}][values][{{select_id}}][option_type_id]" value="{{option_type_id}}">'+
+        '<input type="hidden" id="product_option_{{id}}_select_{{select_id}}_is_delete" name="product[options][{{id}}][values][{{select_id}}][is_delete]" value="">'+
+        '<input type="text" class="required-entry input-text select-type-title" id="product_option_{{id}}_select_{{select_id}}_title" name="product[options][{{id}}][values][{{select_id}}][title]" value="{{title}}">{{checkboxScopeTitle}}</td>'+
+        '<td><input type="text" class="input-text validate-number product-option-price" id="product_option_{{id}}_select_{{select_id}}_price" name="product[options][{{id}}][values][{{select_id}}][price]" value="{{price}}"></td>'+
+        '<td><?php echo $this->getPriceTypeSelectHtml() ?>{{checkboxScopePrice}}</td>'+
+        '<td><input type="text" class="input-text" name="product[options][{{id}}][values][{{select_id}}][sku]" value="{{sku}}"></td>'+
+        '<td><input type="text" class="validate-zero-or-greater input-text" name="product[options][{{id}}][values][{{select_id}}][sort_order]" value="{{sort_order}}"></td>'+
+        <?php if (Mage::helper('customoptions')->isInventoryEnabled()): ?>
+        '<td><input <?php if (!Mage::getStoreConfig(Mage_CatalogInventory_Model_Stock_Item::XML_PATH_MANAGE_STOCK)): ?>disabled="disabled"<?php endif; ?> type="text" class="validate-zero-or-greater input-text" name="product[options][{{id}}][values][{{select_id}}][customoptions_qty]" value="{{customoptions_qty}}"></td>'+
+        <?php endif; ?>
+        '<td><input id="product_option_{{id}}_select_{{select_id}}_default" type="{{default_type}}" class="input-text" name="product[options][{{id}}][default][]" value="{{select_id}}" {{checked}}></td>'+
+        <?php if ($this->getParentBlock()->CLASSNAME != 'MageWorx_Adminhtml_Block_Customoptions_Options_Edit_Tab_Options_Option'):?>
+        <?php endif; ?>
+        '<td><span title="Add image"><?php echo $this->getAddImageButtonHtml() ?></span></td>'+
+        '<td class="last"><span title="Delete row"><?php echo $this->getDeleteButtonHtml() ?></span></td>'+
+        '</tr>'+        
+        '<tr id="image_option_row_{{select_id}}"><td colspan="9">{{image}}</td></tr>'+
+        '<td id="file_option_row_{{select_id}}" colspan="9"><div id="file-upload-{{id}}-{{select_id}}"></div></td>'
+        '</tr>';
+    function PHP_Unserialize_(input)
+    {
+        input = input.toString();
+        var length = 0;
+        switch (input.charAt(0)) {
+            case 'a':
+                length = PHP_Unserialize_GetLength(input);
+                input  = input.substr(String(length).length + 4);
+
+                var arr   = new Array();
+                var key   = null;
+                var value = null;
+
+                for (var i=0; i<length; ++i) {
+                    key   = PHP_Unserialize_(input);
+                    input = key[1];
+
+                    value = PHP_Unserialize_(input);
+                    input = value[1];
+
+                    arr[key[0]] = value[0];
+                }
+
+                input = input.substr(1);
+                return [arr, input];
+                break;
+
+            case 's':
+                length = PHP_Unserialize_GetLength(input);
+                return [String(input.substr(String(length).length + 4, length)), input.substr(String(length).length + 6 + length)];
+                break;
+
+            case 'i':
+            case 'd':
+                var num = Number(input.substring(2, input.indexOf(';')));
+                return [num, input.substr(String(num).length + 3)];
+                break;
+
+            case 'b':
+                var bool = (input.substr(2, 1) == 1);
+                return [bool, input.substr(4)];
+                break;
+
+            case 'N':
+                return [null, input.substr(2)];
+                break;
+
+            case 'o':
+            case 'O':
+            case 'r':
+            case 'C':
+            case 'R':
+            case 'U':
+                alert('Error: Unsupported PHP data type found!');
+            default:
+                return [null, null];
+                break;
+        }
+    }
+    function PHP_Unserialize_GetLength(input)
+    {
+        input = input.substring(2);
+        var length = Number(input.substr(0, input.indexOf(':')));
+        return length;
+    }
+    selectOptionType = {
+        div : 'select_option_type_row',
+        itemCount : 0,
+        templateSyntax : /(^|.|\r|\n)({{(\w+)}})/,
+        templateText : OptionTemplateSelectRow,
+        add : function(data) {            
+            this.template = new Template(this.templateText, this.templateSyntax);
+
+            if (data.target || data.srcElement) {//data is Event (work in IE and Firefox)
+                element = $(Event.findElement(data, 'button'));
+                optionId = element.readAttribute('id').sub('add_select_row_button_', '');
+                data = {};
+                data.option_type_id = '-1';
+                data.select_id = this.itemCount;
+                data.option_id = optionId;
+            } else {
+                optionId = data.option_id;
+                data.select_id = data.option_type_id;
+                this.itemCount = data.item_count;
+            }
+            
+            var count = $$("input[id^='product_option_" + optionId + "_select_']").size() / 4 + 1;
+
+            if (count > this.itemCount) {
+                this.itemCount = count;
+                data.item_count = count;
+                data.select_id = count;
+            }
+            
+            if (!data.default_type) {
+                var inputType = $("product_option_" + optionId + "_type");
+                switch (inputType.value) {
+                    case 'drop_down':
+                    case 'radio':
+                        data.default_type = 'radio';
+                        break;
+                    case 'checkbox':
+                        data.default_type = 'checkbox';
+                        break;
+                }
+            }
+
+            data.id  = optionId;
+            if (!data.image_button_label) data.image_button_label = '<?php echo Mage::helper('customoptions')->__('Add Image') ?>';
+
+            Element.insert($(this.div+'_'+data.id), {'bottom':this.template.evaluate(data)});
+
+            if (data.checkboxScopeTitle) {
+                //set disabled
+                if ($('product_option_'+data.id+'_select_'+data.select_id+'_title') && data.scopeTitleDisabled) {
+                    $('product_option_'+data.id+'_select_'+data.select_id+'_title').disable();
+                }
+            }
+            if (data.checkboxScopePrice) {
+                //set disabled
+                if ($('product_option_'+data.id+'_select_'+data.select_id+'_price') && data.scopePriceDisabled) {
+                    $('product_option_'+data.id+'_select_'+data.select_id+'_price').disable();
+                    $('product_option_'+data.id+'_select_'+data.select_id+'_price_type').disable();
+                }
+            }
+
+            if (data.price_type) {
+                $A($('product_option_'+data.id+'_select_'+data.select_id+'_price_type').options).each(function(option){
+                    if (option.value==data.price_type) option.selected = true;
+                });
+            }
+
+            this.itemCount++;
+            this.bindRemoveButtons();
+        },
+        remove : function(event){
+            var element = $(Event.findElement(event, 'tr'));
+
+            if(element){
+                $(element.readAttribute('id')+'_is_delete').value = '1';
+                element.addClassName('no-display');
+                element.addClassName('ignore-validate');
+                element.hide();
+                
+                // remove image tr
+                ids = element.readAttribute('id').split('_');
+                id = ids[ids.length-1];
+                $('image_option_row_'+id).remove();
+                $('file_option_row_'+id).remove();
+            }
+        },
+        bindRemoveButtons : function(){
+            var buttons = $$('.delete-select-row');
+            for(var i=0;i<buttons.length;i++){
+                if(!$(buttons[i]).binded){
+                    $(buttons[i]).binded = true;
+                    Event.observe(buttons[i], 'click', this.remove.bind(this));
+                }
+            }
+        },
+        bindAddButton : function()
+        {
+            var buttons = $$('.add-select-row');
+            for(var i=0;i<buttons.length;i++){
+                if(!$(buttons[i]).binded){
+                    $(buttons[i]).binded = true;
+                    Event.observe(buttons[i], 'click', this.add.bind(this));
+                }
+            }
+        },
+        createFileField: function(strId) {
+            var id = strId.split('-');
+            var optionId = id[3];
+            selectId = typeof id[4] != 'undefined' ? id[4] : '';
+            var ids = '';
+            if (selectId != '') {
+                ids = optionId + '-' + selectId;
+            } else {
+                ids = optionId;
+            }
+            var tpl = '<table class="customoptions-file-row" cellspacing="0" cellpadding="0"><tr>'+
+                '<td><input class="input-file" type="file" name="file_'+ ids +'" value="" /></td>'+
+                '<td class="td-button"><span title="<?php echo $this->__('Hide') ?>">'+
+                '<button type="button" onclick="selectOptionType.cleanFileRow(\''+ ids +'\')" class="delete delete-select-row icon-btn"><span><?php echo $this->__('Hide') ?></span></button></span></td>'+
+                '</tr></table>';
+            var field = $('file-upload-'+ optionId + '-' + selectId);
+            if (field) {
+                field.update(tpl);
+            }
+        },
+        cleanFileRow: function(id) {
+            id = id.split('-');
+            var optionId = id[0];
+            selectId = typeof id[1] != 'undefined' ? id[1] : '';
+            var ids = '';
+            if (selectId != '') {
+                ids = optionId + '-' + selectId;
+            } else {
+                ids = optionId;
+            }
+            var fileRow = $('file-upload-'+ ids);
+            if (fileRow) {
+                fileRow.update('');
+            }
+	}
+    }
+
+    if ($('option_panel_type_select')) {
+        $('option_panel_type_select').remove();
+    }
+
+    selectOptionType.bindRemoveButtons();
+
+    Validation.addAllThese([
+        ['required-option-select-type-rows', '<?php echo Mage::helper('catalog')->__('Please add rows to option.') ?>', function(v, elm) {
+                var optionContainerElm = elm.up('div.grid');
+                var selectTypesFlag = false;
+                selectTypeElements = $$('#'+optionContainerElm.id+' .select-type-title');
+                selectTypeElements.each(function(elm){
+                    if (elm.id && elm.up('tr').visible()) {
+                        selectTypesFlag = true;
+                    }
+                });
+                elm.advaiceContainer = optionContainerElm.id+'_advice';
+                return selectTypesFlag;
+            }]]);
+
+    if($('add_select_row_button')){
+        Event.observe('add_select_row_button', 'click', selectOptionType.add.bind(selectOptionType));
+    }
+
+    //]]>
+</script>
